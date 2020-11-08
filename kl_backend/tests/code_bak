@@ -1,0 +1,59 @@
+class StockHistoryDataHandler(BaseHandler):
+    """获取股票K线数据,highstock版,因为highstock时间轴是时间戳"""
+    def post(self):
+        asset_code = self.get_argument('asset_code', 'sh')  # 默认为上证指数
+        ktype = self.get_argument('ktype', 'D')  # 默认为天级别数据
+        k_his_data = ts.get_hist_data(asset_code, ktype=ktype)
+        data = []
+        time_format = '%Y-%m-%d %H:%M:%S'
+        if ktype in ['D', 'W', 'M']:
+            time_format = '%Y-%m-%d'
+        for i in k_his_data.index:
+            dic = {}
+            time_stamp = time.mktime(time.strptime(i, time_format))
+            dic['time'] = time_stamp * 1000
+            dic['open'] = k_his_data['open'][i]
+            dic['high'] = k_his_data['high'][i]
+            dic['low'] = k_his_data['low'][i]
+            dic['close'] = k_his_data['close'][i]
+            dic['volume'] = k_his_data['volume'][i]
+            data.append(dic)
+        data.reverse()
+        self.write({'data': data})
+
+
+class CurrentDataHander(BaseHandler):
+    """获取股票实时数据,highstock版"""
+    def post(self):
+        asset_code = self.get_argument('asset_code', '601333')  # asset_code 目前只支持股票
+        one_current = ts.get_realtime_quotes(asset_code)
+        dic = {}
+        dic['open'] = float(one_current['open'][0])
+        dic['high'] = float(one_current['high'][0])
+        dic['low'] = float(one_current['low'][0])
+        dic['close'] = float(one_current['price'][0])
+        dic['volume'] = float(one_current['volume'][0])
+        t = one_current['date'][0] + ' ' + one_current['time'][0].rsplit(':', 1)[0]
+        dic['time'] = time.mktime(time.strptime(t, '%Y-%m-%d %H:%M')) * 1000
+        dic['name'] = one_current['name'][0]
+        dic['code'] = one_current['code'][0]
+        self.write({"data": dic})
+
+# class CurrentStockDataHander(BaseHandler):
+#     """获取股票实时数据,3s一次"""
+#
+#     @try_except
+#     def post(self):
+#         asset_code = self.get_argument('asset_code', 'sh')
+#         one_current = ts.get_realtime_quotes(asset_code)
+#         dic = {}
+#         dic['open'] = float(one_current['open'][0])
+#         dic['high'] = float(one_current['high'][0])
+#         dic['low'] = float(one_current['low'][0])
+#         dic['close'] = float(one_current['price'][0])
+#         dic['volume'] = float(one_current['volume'][0])
+#         t = one_current['date'][0] + ' ' + one_current['time'][0].rsplit(':', 1)[0]
+#         dic['time'] = time.mktime(time.strptime(t, '%Y-%m-%d %H:%M')) * 1000
+#         dic['name'] = one_current['name'][0]
+#         dic['code'] = one_current['code'][0]
+#         self.write({"data": dic})
